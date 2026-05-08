@@ -45,18 +45,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Playwright browsers (chromium)
-        # Scrapling[fetchers] depende de patchright/playwright + chromium
-        run: |
-          scrapling install
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ~/ms-playwright
-
       - name: Cache Playwright browsers
+        id: pw-cache
         uses: actions/cache@v4
         with:
-          path: ~/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-v1
+
+      - name: Install Playwright browsers (chromium + patchright)
+        # Scrapling usa patchright (Chromium "patcheado") via StealthyFetcher
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: |
+          python -m playwright install chromium --with-deps
+          python -m patchright install chromium
 
       - name: Run scrape.py (descobre posts e baixa imagens)
         env:
