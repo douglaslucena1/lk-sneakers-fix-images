@@ -251,11 +251,19 @@ def main() -> int:
     setup_logging()
     load_dotenv(ROOT / ".env")
     wp_url = os.getenv("WP_URL", "").rstrip("/")
+    wp_user = os.getenv("WP_USER", "")
+    wp_pw = os.getenv("WP_APP_PASSWORD", "")
+
+    log.info("Env check: WP_URL=%r, WP_USER=%r, WP_APP_PASSWORD=%s",
+             wp_url, wp_user, "(set)" if wp_pw else "(EMPTY!)")
+
     if not wp_url:
-        print("WP_URL nao definido em .env", file=sys.stderr)
+        print("ERRO: WP_URL nao definido (env var ou .env)", file=sys.stderr)
         return 2
 
     args = parse_args()
+    log.info("Args: max_posts=%d, skip=%d, single_post=%s, output=%s",
+             args.max_posts, args.skip, args.single_post, args.output)
     TMP_DIR.mkdir(exist_ok=True)
 
     if args.single_post:

@@ -97,14 +97,18 @@ jobs:
 
       - name: Summary
         if: always()
+        shell: bash
         run: |
           echo "## Run summary" >> $GITHUB_STEP_SUMMARY
-          if [ -d reports ]; then
-            for f in reports/*.csv; do
+          shopt -s nullglob
+          csvs=(reports/*.csv)
+          if [ ${#csvs[@]} -eq 0 ]; then
+            echo "_Nenhum relatorio gerado nesse run._" >> $GITHUB_STEP_SUMMARY
+          else
+            for f in "${csvs[@]}"; do
               echo "### $f" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
-              head -1 "$f" >> $GITHUB_STEP_SUMMARY
-              tail -n +2 "$f" >> $GITHUB_STEP_SUMMARY
+              cat "$f" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             done
           fi
