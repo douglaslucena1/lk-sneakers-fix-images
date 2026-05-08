@@ -9,7 +9,7 @@ on:
       chunk_size:
         description: "Quantos posts processar nesse run (max ~150 cabe em 6h)"
         required: false
-        default: "50"
+        default: "100"
       dry_run:
         description: "Dry-run (não atualiza posts; só baixa imagens e simula)"
         required: false
@@ -17,8 +17,8 @@ on:
         type: choice
         options: ["false", "true"]
   schedule:
-    # A cada 6 horas: 00:00, 06:00, 12:00, 18:00 UTC (Brasília -3h)
-    - cron: "0 */6 * * *"
+    # A cada 3 horas (8 runs/dia × 100 posts = 800/dia → ~4 dias pros 3000)
+    - cron: "0 */3 * * *"
 
 # Garante que apenas 1 run por vez (evita conflitos de concurrent updates no WP)
 concurrency:

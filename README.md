@@ -84,9 +84,11 @@ Verifique logs e artifacts. Se OK, refaça com `chunk_size=50` e `dry_run=false`
 
 ### 5. Rodar em produção
 
-A partir daí, o cron `0 */6 * * *` (a cada 6h) roda automaticamente. Vai processar ~50 posts/run × 4 runs/dia = ~200 posts/dia. Em ~15 dias os 3000 ficam corrigidos.
+A partir daí, o cron `0 */3 * * *` (a cada 3h, 8 runs/dia) roda automaticamente.
+Default: chunk 100 posts/run × 8 runs/dia = ~800 posts/dia.
+**Estimativa: ~4 dias pros 3000 posts** (com algum overlap/queue na prática).
 
-Pra acelerar, dispare `workflow_dispatch` quantas vezes quiser entre os crons.
+Pra acelerar, dispare `workflow_dispatch` manualmente quantas vezes quiser entre os crons (limit: concurrency.fix-images garante 1 por vez na fila).
 
 ## Local (debug)
 
