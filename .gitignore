@@ -1,0 +1,41 @@
+# Credenciais e ambiente local
+.env
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Estado/output do pipeline (efemeros — recriados por run)
+tmp/
+logs/
+reports/
+.pw-profile/
+scraped.json
+
+# Claude Code config (local)
+.claude/
+
+# Imagens locais (regeneradas pelo scrape; NÃO commitar 5GB de JPGs)
+*.jpeg
+*.jpg
+*.png
+# Mas mantém os do redesign-blog (logos do blog)
+!redesign-blog/*.png
+
+# Playwright MCP outputs
+.playwright-mcp/
+
+# OneDrive lockfiles
+*.tmp
+*~
+
+# Tema baixado da Shopify (fica local, não vai pro GH)
+tema lk shopify/
+
+# Backup do blog (também local)
+backup-blog-pre-redesign/
+
+# Pasta de redesign do blog (não relacionada ao pipeline de imagens)
+redesign-blog/

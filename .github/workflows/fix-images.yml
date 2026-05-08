@@ -1,0 +1,110 @@
+name: Fix Missing Images (LK Sneakers blog)
+
+# Triggers:
+#  - workflow_dispatch: rodar manualmente (com input pra chunk size)
+#  - schedule: a cada 6h (4 runs/dia, ~150-200 posts/dia, ~3000 em ~15-20 dias)
+on:
+  workflow_dispatch:
+    inputs:
+      chunk_size:
+        description: "Quantos posts processar nesse run (max ~150 cabe em 6h)"
+        required: false
+        default: "50"
+      dry_run:
+        description: "Dry-run (não atualiza posts; só baixa imagens e simula)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+  schedule:
+    # A cada 6 horas: 00:00, 06:00, 12:00, 18:00 UTC (Brasília -3h)
+    - cron: "0 */6 * * *"
+
+# Garante que apenas 1 run por vez (evita conflitos de concurrent updates no WP)
+concurrency:
+  group: fix-images
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # ~5h50min (limite GHA é 6h)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers (chromium)
+        # Scrapling[fetchers] depende de patchright/playwright + chromium
+        run: |
+          scrapling install
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ~/ms-playwright
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium
+
+      - name: Run scrape.py (descobre posts e baixa imagens)
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          CHUNK_SIZE: ${{ github.event.inputs.chunk_size || '50' }}
+        run: |
+          python scrape.py --max-posts $CHUNK_SIZE --output scraped.json
+
+      - name: Run fix_missing_images.py (upload + update)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          python fix_missing_images.py --scraped-json scraped.json
+
+      - name: Run fix_missing_images.py DRY-RUN
+        if: github.event.inputs.dry_run == 'true'
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          python fix_missing_images.py --scraped-json scraped.json --dry-run
+
+      - name: Upload reports + logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.run_id }}
+          path: |
+            reports/
+            logs/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Run summary" >> $GITHUB_STEP_SUMMARY
+          if [ -d reports ]; then
+            for f in reports/*.csv; do
+              echo "### $f" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              head -1 "$f" >> $GITHUB_STEP_SUMMARY
+              tail -n +2 "$f" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            done
+          fi
